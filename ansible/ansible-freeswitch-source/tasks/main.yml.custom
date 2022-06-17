@@ -1,0 +1,186 @@
+---
+
+- name: update apt-cache
+  apt: update_cache=yes 
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name:  Debian family - install build dependencies
+  apt: 
+    state: latest
+    name: ['curl', 'gnupg2', 'wget', 'git', 'cmake', 'automake', 'autoconf', 'libavformat-dev', 'liblua5.1-0-dev',
+        'libtool', 'build-essential', 'pkg-config', 'ca-certificates', 'libssl-dev', 'lsb-release', 'systemd-coredump', 'liblz4-tool',
+        'libz-dev', 'libjpeg-dev', 'libsqlite3-dev', 'libcurl4-openssl-dev', 'libpcre3-dev', 'libswscale-dev', 'php-cli',
+        'libspeex-dev', 'libspeexdsp-dev', 'libedit-dev', 'libtiff-dev', 'yasm', 'haveged', 'libldns-dev', 'uuid-dev',
+        'libopus-dev', 'libopusfile-dev', 'libsndfile-dev', 'libshout3-dev', 'libmpg123-dev', 'libmp3lame-dev', 'libpq-dev', 'librabbitmq-dev']
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: install libtool-bin
+  apt: 
+    name: libtool-bin 
+    state: latest
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  ignore_errors: yes          
+
+- name: git configure
+  shell: git config --global pull.rebase true
+
+- name: check out freeswitch code
+  git: 
+       repo : https://github.com/signalwire/freeswitch.git
+       dest : "{{freeswitch_sources_path}}"
+       version : "{{freeswitch_version}}"
+       depth : 50
+       accept_hostkey : yes
+       force : yes
+
+- name: check out libks
+  git: 
+       repo : https://github.com/signalwire/libks.git
+       dest : "{{freeswitch_sources_path}}/libs/libks"
+       version : "{{libks_version}}"
+       depth : 50
+       accept_hostkey : yes
+       force: yes
+
+# - name: check out signalwire
+#   git: 
+#        repo : https://github.com/signalwire/signalwire-c.git
+#        dest : "{{freeswitch_sources_path}}/libs/signalwire-c"
+#        version : "{{signalwire_version}}"
+#        depth : 50
+#        accept_hostkey : yes
+#        force : yes
+
+# - name: check out spandsp
+#   git: 
+#        repo : https://github.com/freeswitch/spandsp.git
+#        dest : "{{freeswitch_sources_path}}/libs/spandsp"
+#        version : "{{spandsp_version}}"
+#        depth : 50
+#        accept_hostkey : yes
+#        force : yes
+
+# - name: check out sofia
+#   git: 
+#        repo : https://github.com/freeswitch/sofia-sip.git
+#        dest : "{{freeswitch_sources_path}}/libs/sofia-sip"
+#        version : "{{sofia_version}}"
+#        depth : 50
+#        accept_hostkey : yes
+#        force : yes
+
+# - name: check out libfvad
+#   git: 
+#     repo: https://github.com/dpirch/libfvad.git
+#     dest: "{{freeswitch_sources_path}}/libs/libfvad"
+#     depth: 50
+#     accept_hostkey: yes
+#     force: yes
+
+# - name: check out lws code
+#   git: 
+#     repo: https://github.com/warmcat/libwebsockets.git
+#     dest: "{{freeswitch_sources_path}}/libs/libwebsockets"
+#     version: "{{lws_version}}"
+#     depth: 50
+#     accept_hostkey: yes
+#     force: yes
+
+# - name: build libwebsockets
+#   shell: mkdir -p build && cd build && cmake .. && make && make install
+#   args:
+#     chdir: "{{freeswitch_sources_path}}/libs/libwebsockets"
+#     warn: False
+
+# - name: build libfvad
+#   shell: autoreconf -i && ./configure && make && make install
+#   args:
+#     chdir: "{{freeswitch_sources_path}}/libs/libfvad"
+
+- name: build libks
+  shell: cmake . && make && make install
+  args:
+    chdir: "{{freeswitch_sources_path}}/libs/libks"
+  
+# - name: build signalwire-c
+#   shell: cmake . && make && make install
+#   args:
+#     chdir: "{{freeswitch_sources_path}}/libs/signalwire-c"
+
+# - name: build spandsp
+#   shell: ./bootstrap.sh && ./configure && make && make install
+#   args:
+#     chdir: "{{freeswitch_sources_path}}/libs/spandsp"
+
+# - name: build sofia
+#   shell: ./bootstrap.sh && ./configure && make && make install
+#   args:
+#     chdir: "{{freeswitch_sources_path}}/libs/sofia-sip"
+
+- name: bootstrap 
+  shell: ./bootstrap.sh -j chdir={{freeswitch_sources_path}}
+
+# - name: install freeswitch.service
+#   template: src=modules.conf dest={{freeswitch_sources_path}}
+
+- name: Freeswitch configuration 
+  shell: ./configure chdir={{freeswitch_sources_path}}
+
+- name: FreeSwitch make
+  shell: make -j 4 chdir={{freeswitch_sources_path}}
+
+- name: FreeSwitch install
+  shell: make install chdir={{freeswitch_sources_path}}
+
+- name: make sounds
+  shell: cd {{freeswitch_sources_path}} && make cd-sounds-install cd-moh-install 
+
+# - name: change rtp-start-port
+#   lineinfile:
+#     path: /usr/local/freeswitch/conf/autoload_configs/switch.conf.xml
+#     regexp: 'rtp-start-port'
+#     line:  <param name="rtp-start-port" value="{{rtp_start_port}}"/>
+
+# - name: change rtp-end-port
+#   lineinfile:
+#     path: /usr/local/freeswitch/conf/autoload_configs/switch.conf.xml
+#     regexp: 'rtp-end-port'
+#     line:  <param name="rtp-end-port" value="{{rtp_end_port}}"/>
+
+# - name: change ext-rtp-ip
+#   lineinfile:
+#     path: /usr/local/freeswitch/conf/sip_profiles/internal.xml 
+#     regexp: 'ext-rtp-ip'
+#     line:  <param name="ext-rtp-ip" value="$${local_ip_v4}"/>
+
+# - name: change ext-sip-ip
+#   lineinfile:
+#     path: /usr/local/freeswitch/conf/sip_profiles/internal.xml 
+#     regexp: 'ext-sip-ip'
+#     line:  <param name="ext-sip-ip" value="$${local_ip_v4}"/>
+
+- name: setup freeswitch.service
+  template: src=freeswitch.service dest=/etc/systemd/system/freeswitch.service
+
+# - name: setup freeswitch.service
+#   template: src=modules.conf.xml dest={{freeswitch_sources_path}}conf/autoload_configs/
+
+- name: reload systemctl
+  shell: systemctl daemon-reload
+
+- name: start freeswitch
+  shell: systemctl start freeswitch
+
+- name: enable freeswitch
+  shell: systemctl enable freeswitch
+
+# - name: create link fs_cli
+#   shell: ln -s /usr/local/freeswitch/bin/fs_cli /usr/bin
+
+# - name: remove source code
+#   file: 
+#     path: "{{ item }}"
+#     state: absent
+#   with_items:
+#     - /usr/local/src/freeswitch
+#   when: remove_source|bool

@@ -1,0 +1,48 @@
+---
+# path to the FreeSwitch source directory
+freeswitch_sources_path: /usr/local/src/freeswitch/
+
+libks_version: master
+signalwire_version: master
+spandsp_version: master
+sofia_version: master
+
+
+# path to the FreeSwitch install directory
+freeswitch_path: /usr/local/freeswitch/
+
+# freeswitch secret
+freeswitch_secret: ClueCon 
+
+# # freeswitch version
+freeswitch_version: master
+# freeswitch_version: v1.10.5
+
+# # sip ports to listen on
+# freeswitch_sip_port: 5080
+# freeswitch_dtls_sip_port: 5081
+
+# add any addresses (in cidr format) that should be allowed to connect to event socket
+freeswitch_socket_acl:
+  - 0.0.0.0/0
+
+# freeswitch owner and group
+freeswitch_owner: freeswitch
+freeswitch_group: daemon
+
+# freeswitch configure command - you can add option
+freeswitch_configure_command: configure --with-lws=yes
+
+# freeswitch log configuration file template
+freeswitch_log_conf_template: ../templates/logfile.conf.xml
+
+
+lws_version: v3.2.3
+
+cloud_provider: none
+freeswitch_bind_cloud_ip: false
+
+rtp_start_port: 25000
+rtp_end_port: 39000
+
+remove_source: false
